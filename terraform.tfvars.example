@@ -1,0 +1,52 @@
+# ================================================
+# Terraform Example Variables for Deployment
+# ================================================
+# Fill in with your own values before running Terraform.
+# DO NOT COMMIT SECRETS OR REAL KEYS.
+
+# --- AWS Configuration ---
+aws_region = "us-west-2"
+ses_region = "us-west-2"
+
+# --- Environment & Naming ---
+environment     = "dev"        # e.g. dev, staging, prod
+infra_suffix    = "v1"         # unique suffix for naming (e.g., v1, v2)
+app_name_prefix = "arcadesbox" # prefix for naming
+
+# --- Domains ---
+frontend_domain_name  = "app.dev.example.com"
+api_domain_name       = "api.dev.example.com"
+games_cdn_domain_name = "games.dev.example.com"
+root_domain_name      = "example.com"
+
+# --- Cloudflare Configuration ---
+cloudflare_pages_cname_target = "pages.dev.example.pages.dev"
+cloudflare_workers_subdomain  = "youraccount.workers.dev"
+r2_account_id                 = "your-cloudflare-account-id"
+r2_access_key_id              = "R2ACCESSKEYIDHERE"
+r2_secret_access_key          = "R2SECRETACCESSKEYHERE"
+r2_public_cname_target        = "public.r2.examplecdn.com"
+r2_bucket_is_public           = false # true = skip Worker, directly use R2
+
+# --- GitHub OIDC Deployment ---
+github_org    = "example-org"
+github_repo   = "example-repo"
+github_branch = "main"
+
+# --- Worker Configuration ---
+worker_jwt_secret     = "replace-with-random-jwt-secret"
+worker_script_content = "" # CI will inject content during build
+
+# --- SES (Email Service) ---
+ses_sending_domain     = "dev.example.com"
+ses_from_email_address = "no-reply@dev.example.com"
+
+# --- Optional Redis ---
+enable_redis         = false
+redis_node_type      = "cache.t4g.micro"
+redis_engine_version = "7.0"
+
+# --- Local Dev IAM User (optional) ---
+create_local_dev_user = false
+local_dev_user_name   = "chareli-local-dev"
+

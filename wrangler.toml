@@ -1,0 +1,6 @@
+name = "chareli-games-gatekeeper"
+main = "./workers/game_gatekeeper.js"
+compatibility_date = "2025-10-17"
+
+[observability.logs]
+enabled = true

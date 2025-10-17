@@ -1,0 +1,60 @@
+# Local .terraform directories
+.terraform/
+.dev.vars
+# Terraform state files and backups
+*.tfstate
+*.tfstate.*
+terraform.tfstate.*
+terraform.tfstate
+*.tfstate.backup
+terraform.tfstate.backup
+
+# Terraform plan output
+*.tfplan
+
+# Override files (for local settings)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable definition files that should not be committed (if containing sensitive data)
+*.tfvars
+terraform.tfvars
+
+# Terraform lock file (optional: remove if you want deterministic builds)
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
+# IDE directories
+.idea/
+.vscode/
+.history/
+
+node_modules/
+.env
+.env-*
+.env.*
+repomix*
+.repomix*
+
+dist/
+/dist
+# Terragrunt cache and logs
+.terragrunt-cache/
+.terragrunt-debug.log
+
+# Terragrunt configuration files (if containing secrets)
+*.hcl
+terragrunt.hcl
+# Wrangler build and cache files
+.wrangler/
+.wrangler-config/
+.wrangler-state.json
+.wrangler.toml.local
+wrangler.toml.local
+wranglerjs/
+wrangler-out/
+wrangler-build/
+wrangler-debug.log

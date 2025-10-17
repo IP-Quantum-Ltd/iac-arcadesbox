@@ -1,0 +1,149 @@
+variable "aws_region" {
+  description = "AWS region to deploy resources"
+  type        = string
+}
+
+variable "ses_region" {
+  description = "AWS region for the SES provider"
+  type        = string
+}
+variable "app_name_prefix" {
+  description = "A name prefix for resources"
+  type        = string
+  default     = "chareli"
+}
+
+variable "app_port" {
+  description = "The port your application listens on inside the container"
+  type        = number
+  default     = 5000
+}
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}
+variable "image_tag" {
+  description = "The Docker image tag to deploy (e.g., 'latest', 'v1.2.3', or a git SHA)."
+  type        = string
+  default     = "latest"
+}
+
+variable "frontend_domain_name" {
+  description = "Custom domain for the React app (e.g., api.dev.chareli.reallygreattech.com)"
+  type        = string
+}
+
+variable "api_domain_name" {
+  description = "Custom domain for the api (e.g., dev.chareli.yourdomain.com)"
+  type        = string
+}
+
+variable "games_cdn_domain_name" {
+  description = "Custom domain for the games CDN (e.g., games-cdn.dev.chareli.yourdomain.com)"
+  type        = string
+}
+variable "ses_sending_domain" {
+  description = "The domain to verify for sending SES emails in dev (e.g., dev.chareli.yourdomain.com)"
+  type        = string
+}
+variable "ses_from_email_address" {
+  description = "The primary 'From' email address to verify for SES in dev (e.g., no-reply@dev.chareli.yourdomain.com)"
+  type        = string
+}
+variable "local_dev_user_name" {
+  description = "Name for the IAM user for local development"
+  type        = string
+  default     = "chareli-local-dev-user"
+}
+variable "create_local_dev_user" {
+  description = "Set to true to create the IAM user for local development."
+  type        = bool
+  default     = false
+}
+
+variable "github_org" {
+  description = "GitHub organization or user"
+  type        = string
+}
+variable "github_repo" {
+  description = "GitHub repository"
+  type        = string
+}
+
+variable "r2_account_id" {
+  description = "Account ID for the cloudflare account"
+  type        = string
+}
+
+variable "r2_access_key_id" {
+  description = "Access keys for the cloudflare account"
+  type        = string
+}
+
+variable "r2_secret_access_key" {
+  description = "Secret key for the cloudflare account"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_branch" {
+  description = "GitHub branch to allow access"
+  type        = string
+  default     = "main"
+}
+
+variable "root_domain_name" {
+  description = "Root domain for the app"
+  type        = string
+}
+
+variable "cloudflare_pages_cname_target" {
+  description = "CNAME for the cloudflare pages"
+  type        = string
+}
+
+variable "r2_public_cname_target" {
+  description = "CNAME for the r2 bucket"
+  type        = string
+}
+
+variable "infra_suffix" {
+  description = "A suffix to append to resource names for uniqueness (e.g., 'v2')."
+  type        = string
+}
+
+variable "worker_jwt_secret" {
+  description = "A suffix to append to resource names for uniqueness (e.g., 'v2')."
+  type        = string
+}
+
+
+variable "cloudflare_workers_subdomain" {
+  description = "Your account's custom *.workers.dev subdomain."
+  type        = string
+}
+
+
+variable "enable_redis" {
+  description = "Set to true to create an ElastiCache Redis cluster."
+  type        = bool
+  default     = false
+}
+
+variable "redis_node_type" {
+  description = "The instance size for the Redis nodes (e.g., cache.t4g.micro)."
+  type        = string
+  default     = "cache.t4g.micro"
+}
+
+variable "redis_engine_version" {
+  description = "The version of the Redis engine to use."
+  type        = string
+  default     = "7.0" # Use a recent, stable version
+}
+
+variable "r2_bucket_is_public" {
+  description = "If true, the games CDN domain will point directly to the public R2 endpoint. If false, it will point to the secure worker."
+  type        = bool
+  default     = true
+}
