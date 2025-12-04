@@ -1,6 +1,6 @@
-name = "chareli-games-gatekeeper"
+name = "arcadesbox-games-gatekeeper"
 main = "./workers/game_gatekeeper.js"
-compatibility_date = "2025-10-17"
+compatibility_date = "2025-11-19"
 
 [observability.logs]
 enabled = true

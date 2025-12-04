@@ -27,10 +27,19 @@ data "aws_iam_policy_document" "ecs_task_execution_secrets_policy_doc" {
     actions = ["secretsmanager:GetSecretValue"]
     # It needs access to BOTH secrets that are injected via the 'secrets' block
     resources = [
-      aws_secretsmanager_secret.application_secrets.arn
+      aws_secretsmanager_secret.application_secrets.arn,
+      aws_secretsmanager_secret.backup_tool_secrets.arn
     ]
   }
 }
+
+# Allow ECS Exec / SSM Session Manager access for ECS Exec
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_ssm" {
+  count      = local.enable_ecs_exec ? 1 : 0
+  role       = aws_iam_role.ecs_task.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 
 resource "aws_iam_policy" "ecs_task_execution_secrets_policy" {
   name   = "${var.app_name_prefix}-ecs-execution-secrets-policy-${var.environment}-${var.infra_suffix}"

@@ -69,7 +69,9 @@ data "aws_iam_policy_document" "github_oidc_policy_doc" {
     actions = [
       "ecs:RegisterTaskDefinition",
       "ecs:UpdateService",
-      "ecs:DescribeServices"
+      "ecs:DescribeServices",
+      "ecs:TagResource"
+
     ]
     resources = [
       # Grant permission to register any revision of our specific task definition family
@@ -77,6 +79,13 @@ data "aws_iam_policy_document" "github_oidc_policy_doc" {
       # Grant permission to update our specific service in our specific cluster
       aws_ecs_service.app.id # Service ARN is its ID in this context
     ]
+  }
+
+  statement {
+    sid       = "ECSDescribeTaskDefinitionWildcard"
+    effect    = "Allow"
+    actions   = ["ecs:DescribeTaskDefinition"]
+    resources = ["*"] # Required — AWS does NOT support resource scoping here
   }
 
   # --- IAM PassRole Permission ---

@@ -28,7 +28,7 @@ resource "aws_ses_email_identity" "chareli_from_email" {
 # If dev.chareli.reallygreattech.com is a SUBDOMAIN within the reallygreattech.com ZONE:
 
 data "aws_route53_zone" "parent_hosted_zone_for_ses" { # Using a different name for clarity
-  name = "reallygreattech.com."                        # Assuming dev.chareli is within this zone
+  name = "${var.root_domain_name}."                    # Assuming dev.chareli is within this zone
 }
 
 # TXT record for SES domain verification (_amazonses.dev.chareli.reallygreattech.com)

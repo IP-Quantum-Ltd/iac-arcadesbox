@@ -1,4 +1,3 @@
-
 # ArcadesBox Cloud Infrastructure (Terraform + AWS + Cloudflare)
 
 > **Infrastructure-as-Code (IaC)** stack for deploying a secure, scalable cloud environment using **AWS ECS Fargate**, **Cloudflare R2**, and **GitHub Actions OIDC**.
@@ -70,11 +69,16 @@ flowchart LR
 ├── networking.tf          # VPC, subnets, NAT, and security groups
 ├── alb.tf                 # Application Load Balancer
 ├── ecs.tf                 # ECS cluster, tasks, and services
+├── ecs_autoscaling.tf     # ECS Service Auto Scaling policies
+├── ecs_backup.tf          # AWS Backup plans for ECS/EFS (if applicable)
 ├── ecr.tf                 # Elastic Container Registry
 ├── r2.tf                  # Cloudflare R2 configuration
 ├── worker.tf              # Cloudflare Worker deployment
 ├── ses.tf                 # SES (email) setup
-├── iam_*.tf               # IAM roles & policies
+├── elasticache.tf         # Redis configuration
+├── alarms.tf              # CloudWatch Alarms
+├── dashboard.tf           # CloudWatch Dashboard
+├── iam_*.tf               # IAM roles & policies (ECS, GitHub, Local User)
 ├── secrets.tf             # Secrets Manager integration
 ├── terraform.tfvars.example # Example configuration file
 ├── .env.example           # Example environment file (see below)
@@ -115,94 +119,92 @@ cp terraform.tfvars.example terraform.tfvars
 
 ### 2. Edit `terraform.tfvars`
 
-Provide your environment-specific values:
+Provide your environment-specific values. Below is a comprehensive list of variables you may need to configure:
 
 ```hcl
+# --- General ---
 aws_region            = "us-west-2"
+ses_region            = "us-east-1" # SES often requires us-east-1 or specific regions
 environment           = "dev"
 infra_suffix          = "v1"
 app_name_prefix       = "arcadesbox"
 
+# --- Domains ---
+root_domain_name      = "example.com"
 frontend_domain_name  = "app.dev.example.com"
 api_domain_name       = "api.dev.example.com"
 games_cdn_domain_name = "games.dev.example.com"
-root_domain_name      = "example.com"
 
-cloudflare_pages_cname_target = "pages.dev.example.pages.dev"
+# --- Cloudflare ---
+cloudflare_account_id         = "your-cloudflare-account-id"
 cloudflare_workers_subdomain  = "youraccount.workers.dev"
+cloudflare_pages_cname_target = "pages.dev.example.pages.dev"
+r2_account_id                 = "your-cloudflare-account-id"
+r2_access_key_id              = "R2ACCESSKEYIDHERE"
+r2_secret_access_key          = "R2SECRETACCESSKEYHERE"
+r2_public_cname_target        = "public.r2.dev" # Or your custom domain target
+r2_bucket_is_public           = true
 
-r2_account_id         = "your-cloudflare-account-id"
-r2_access_key_id      = "R2ACCESSKEYIDHERE"
-r2_secret_access_key  = "R2SECRETACCESSKEYHERE"
+# --- GitHub Integration ---
+github_org    = "Really-Great-Tech"
+github_repo   = "iac-arcadesbox"
+github_branch = "main"
+
+# --- Email (SES) ---
+ses_sending_domain     = "dev.example.com"
+ses_from_email_address = "no-reply@dev.example.com"
+
+# --- Application ---
+worker_jwt_secret = "super-secret-jwt-key"
+image_tag         = "latest"
+
+# --- Optional ---
+enable_redis      = false
+# redis_node_type = "cache.t4g.micro"
 ```
 
 > 📘 For a detailed explanation of every variable, see the [**VARIABLES.md**](./VARIABLES.md) document.
+
 ---
 
 ### 🧱 Terraform State & Providers Configuration
 
-Before deploying, you may need to customize your Terraform backend and providers to match your organization’s setup.
+Before deploying, ensure your backend is configured correctly to store state securely.
 
-1. provider.tf
+#### 1. backend.tf
 
-This file defines Terraform providers for AWS and Cloudflare.
+This project uses **S3** for state storage and **DynamoDB** for state locking.
 
-Example:
-
-```hcl
-provider "aws" {
-  region  = var.aws_region
-  profile = "default"
-}
-
-provider "cloudflare" {
-  api_token = var.cloudflare_api_token
-}
-```
-
-If you use a named AWS profile or different credentials source, update this file accordingly.
-
-📘 Docs:
-
-[AWS Provider Configuration](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-
-[Cloudflare Provider Configuration](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs)
-
-2. backend.tf
-
-This file controls how Terraform stores its state.
-
-Example remote backend configuration:
+**Production Example (`backend.tf`):**
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "chareli-terraform-state"
-    key            = "infrastructure/terraform.tfstate"
-    region         = "us-west-2"
-    dynamodb_table = "chareli-terraform-locks"
     encrypt        = true
+    bucket         = "arcadebox-prod-terraform-state"
+    key            = "arcadesbox/prod/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "arcadesbox-prod-terraform-locks"
   }
 }
 ```
 
-If you’re testing locally or don’t have an S3 backend yet, you can temporarily use a local backend:
+> ⚠️ **Important:** Ensure the S3 bucket and DynamoDB table exist before initializing, or use a local backend for initial bootstrapping.
+
+#### 2. providers.tf
+
+The provider configuration handles authentication for AWS and Cloudflare.
 
 ```hcl
-terraform {
-  backend "local" {
-    path = "terraform.tfstate"
-  }
+provider "aws" {
+  region = var.aws_region
+}
+
+provider "cloudflare" {
+  # Credentials usually picked up from CLOUDFLARE_API_TOKEN env var
 }
 ```
 
-⚠️ It’s strongly recommended to use a remote backend (like S3 + DynamoDB) in team environments to avoid state drift.
-
-📘 Docs:
-
-[Terraform Backends](https://developer.hashicorp.com/terraform/language/backend/s3)
-
-[State Locking with DynamoDB](https://developer.hashicorp.com/terraform/language/backend/s3#dynamodb-table-for-state-locking)
 ---
 
 ## 🔐 Secrets Management
@@ -219,6 +221,7 @@ cp .env.example .env
 
 > ⚠️ Refer to the **[Backend Repository README](https://github.com/Really-Great-Tech/chareli/Server)** for a list of all required variables and their purposes.
 > This `.env` file will later be uploaded to AWS Secrets Manager for use by ECS.
+
 ---
 
 ## 🔑 Cloudflare Authentication
@@ -348,6 +351,40 @@ Add these to Route 53 for email verification.
 
 ---
 
+## 📊 Observability
+
+This stack includes a comprehensive "AWS Native" observability suite.
+
+### 🖥️ CloudWatch Dashboard
+
+A unified dashboard is provisioned to monitor system health at a glance.
+**Name:** `[app_name]-dashboard-[env]-[suffix]`
+
+**Widgets:**
+- **ALB Request Count**: Traffic volume.
+- **ALB Latency**: Average target response time.
+- **ALB Errors**: 4xx and 5xx error counts.
+- **ECS Health**: CPU and Memory utilization.
+
+### 🚨 CloudWatch Alarms
+
+Critical metrics are monitored with alarms that trigger an SNS topic (`[app_name]-alerts-[env]-[suffix]`).
+
+| Alarm | Threshold | Description |
+| :--- | :--- | :--- |
+| **ALB High 5xx** | > 5 errors / min | Indicates application failures. |
+| **ALB High Latency** | > 2s avg latency | Indicates performance degradation. |
+| **ECS High CPU** | > 85% | Cluster is under heavy load. |
+| **ECS High Memory** | > 85% | Potential memory leak or need for scaling. |
+
+### 🪵 Logs
+
+- **ALB Access Logs**: Enabled and stored in S3 bucket `[app_name]-alb-logs-[env]-[suffix]`. Useful for deep traffic analysis.
+- **ECS Application Logs**: Streamed to CloudWatch Logs `/ecs/[app_name]-[env]-[suffix]`.
+- **Worker Logs**: Streamed to Cloudflare (if enabled).
+
+---
+
 ## 🧹 Teardown
 
 To destroy all resources:
@@ -390,5 +427,5 @@ MIT License © 2025 Really Great Tech / ArcadesBox Infrastructure Team
 
 ## 💬 Maintainers
 
-- **DevOps Lead:** [Chris](mailto:christian@reallygreattech.com)
+- **DevOps Lead:** [Christian Koranteng](mailto:christian@reallygreattech.com)
 - **Contributors:** Really Great Tech DevOps Team

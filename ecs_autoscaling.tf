@@ -57,3 +57,22 @@ resource "aws_appautoscaling_policy" "scale_up_memory" {
     scale_out_cooldown = 60
   }
 }
+
+resource "aws_appautoscaling_policy" "scale_by_rps" {
+  name               = "${var.app_name_prefix}-scale-by-rps-${var.environment}-${var.infra_suffix}"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.app.arn_suffix}/${aws_lb_target_group.app.arn_suffix}"
+    }
+
+    target_value       = 150.0 # target 150 requests per second per task
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 30
+  }
+}

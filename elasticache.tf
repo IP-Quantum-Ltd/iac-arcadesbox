@@ -40,6 +40,42 @@ resource "aws_security_group" "redis_sg" {
 }
 
 # -----------------------------------------------------------------------------
+# 2.5. ElastiCache Parameter Group
+#      Custom parameter group to set the eviction policy to 'noeviction'
+# -----------------------------------------------------------------------------
+resource "aws_elasticache_parameter_group" "redis" {
+  count = var.enable_redis ? 1 : 0
+
+  name   = "${var.app_name_prefix}-redis-params-${var.environment}-${var.infra_suffix}"
+  family = "redis${element(split(".", var.redis_engine_version), 0)}"
+
+  description = "Custom parameter group with noeviction policy for ${var.app_name_prefix}"
+
+  # Set the eviction policy to noeviction
+  # This means Redis will return errors when memory is full instead of evicting keys
+  parameter {
+    name  = "maxmemory-policy"
+    value = "noeviction"
+  }
+
+  # Optional: Set a reasonable maxmemory limit
+  # This prevents Redis from using all available memory
+  # Adjust based on your node type - this example sets 80% of a cache.t3.micro (555MB)
+  # For cache.t3.small (1.37GB), you might use 1100mb
+  # For cache.t3.medium (3.09GB), you might use 2500mb
+  # Comment out if you want Redis to use all available memory
+  # parameter {
+  #   name  = "maxmemory"
+  #   value = "450mb"
+  # }
+
+  tags = {
+    Name = "${var.app_name_prefix}-redis-params-${var.environment}-${var.infra_suffix}"
+  }
+}
+
+
+# -----------------------------------------------------------------------------
 # 3. The ElastiCache Replication Group (The Redis Cluster Itself)
 #    We use a replication group even for a single node, as it's the modern
 #    standard and allows for easy scaling/failover later.
@@ -67,7 +103,8 @@ resource "aws_elasticache_replication_group" "redis" {
   # In aws_elasticache_replication_group.redis[0]
   # For Redis 7+, the parameter group family is just '7.x', not '7.0'.
   # We can construct this by splitting the version string.
-  parameter_group_name = "default.redis${element(split(".", var.redis_engine_version), 0)}"
+  # parameter_group_name = "default.redis${element(split(".", var.redis_engine_version), 0)}"
+  parameter_group_name = aws_elasticache_parameter_group.redis[0].name
 
   tags = {
     Name = "${var.app_name_prefix}-redis-${var.environment}-${var.infra_suffix}"

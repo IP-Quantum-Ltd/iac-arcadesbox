@@ -10,7 +10,7 @@ variable "ses_region" {
 variable "app_name_prefix" {
   description = "A name prefix for resources"
   type        = string
-  default     = "chareli"
+  default     = "arcadesbox"
 }
 
 variable "app_port" {
@@ -123,6 +123,10 @@ variable "cloudflare_workers_subdomain" {
   type        = string
 }
 
+variable "cloudflare_account_id" {
+  description = "Your cloudflare account id."
+  type        = string
+}
 
 variable "enable_redis" {
   description = "Set to true to create an ElastiCache Redis cluster."
@@ -146,4 +150,23 @@ variable "r2_bucket_is_public" {
   description = "If true, the games CDN domain will point directly to the public R2 endpoint. If false, it will point to the secure worker."
   type        = bool
   default     = true
+}
+
+variable "s3_backup_gir_transition_days" {
+  description = "Number of days after which to transition S3 backup objects to Glacier Instant Retrieval."
+  type        = number
+  default     = 30
+}
+
+variable "s3_backup_expire_old_versions_days" {
+  description = "Number of days after which to expire old (non-current) versions of S3 backup objects."
+  type        = number
+  default     = 365 # Expire old versions after one year
+}
+
+variable "cf_verify_secret" {
+  description = "Shared secret string to verify traffic comes from Cloudflare (Production only)"
+  type        = string
+  sensitive   = true
+  default     = "" # Can be empty for dev/staging
 }

@@ -50,6 +50,9 @@ resource "aws_subnet" "private" {
 resource "aws_eip" "nat" {
   domain     = "vpc"
   depends_on = [aws_internet_gateway.igw]
+  tags = {
+    Name = "${var.app_name_prefix}-${var.environment}-nat-eip"
+  }
 }
 
 

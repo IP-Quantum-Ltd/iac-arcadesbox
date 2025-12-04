@@ -1,5 +1,9 @@
 resource "aws_ecs_cluster" "main" {
   name = "${var.app_name_prefix}-ecs-cluster-${var.environment}-${var.infra_suffix}"
+  setting {
+    name  = "containerInsights"
+    value = "enhanced"
+  }
 }
 
 resource "aws_cloudwatch_log_group" "app" {
@@ -16,8 +20,8 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "${var.app_name_prefix}-task-${var.environment}-${var.infra_suffix}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = "2048"
+  memory                   = "4096"
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
   depends_on               = [null_resource.upload_env_to_secret]
@@ -85,10 +89,12 @@ resource "aws_ecs_task_definition" "app" {
         { name = "SUPERADMIN_PASSWORD", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SUPERADMIN_PASSWORD::" },
 
         # --- Email Service Credentials (SES / Other) ---
-        { name = "EMAIL_SERVICE", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:EMAIL_SERVICE::" },
+        { name = "EMAIL_PROVIDER", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:EMAIL_PROVIDER::" },
         { name = "EMAIL_USER", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:EMAIL_USER::" },
         { name = "EMAIL_PASSWORD", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:EMAIL_PASSWORD::" },
         { name = "SES_FROM_EMAIL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SES_FROM_EMAIL::" },
+        { name = "SENDGRID_FROM_EMAIL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SENDGRID_FROM_EMAIL::" },
+        { name = "SENDGRID_API_KEY", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SENDGRID_API_KEY::" },
 
         # --- Twilio Credentials ---
         { name = "USE_TWILIO", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:USE_TWILIO::" },
@@ -108,12 +114,12 @@ resource "aws_ecs_task_definition" "app" {
 }
 
 resource "aws_ecs_service" "app" {
-  name            = "${var.app_name_prefix}-service-${var.environment}-${var.infra_suffix}"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
+  name                   = "${var.app_name_prefix}-service-${var.environment}-${var.infra_suffix}"
+  cluster                = aws_ecs_cluster.main.id
+  task_definition        = aws_ecs_task_definition.app.arn
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  enable_execute_command = local.enable_ecs_exec
   lifecycle {
     ignore_changes = [
       desired_count,

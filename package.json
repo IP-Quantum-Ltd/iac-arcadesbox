@@ -1,10 +1,11 @@
 {
-  "name": "chareli-worker",
+  "name": "arcadesbox-worker",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "wrangler deploy --dry-run --outdir=dist --name=game-gatekeeper",
-    "dev": "wrangler dev ./modules/chareli-app/workers/game_gatekeeper.js --local"
+    "build:gatekeeper": "wrangler deploy ./workers/game_gatekeeper.js --dry-run --outdir=dist --name=game-gatekeeper",
+    "build": "npm run build:gatekeeper",
+    "dev": "wrangler dev ./workers/game_gatekeeper.js --local"
   },
   "devDependencies": {
     "@tsndr/cloudflare-worker-jwt": "^2.2.1",

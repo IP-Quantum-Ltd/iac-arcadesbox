@@ -1,10 +1,10 @@
 terraform {
   backend "s3" {
     encrypt        = true
-    bucket         = "rgt-terraform-tfstate"
-    key            = "chareli/test/terraform.tfstate"
-    region         = "us-west-2"
-    dynamodb_table = "chareli-lock"
+    bucket         = "arcadebox-prod-terraform-state"
+    key            = "arcadesbox/test/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "arcadesbox-prod-terraform-locks"
   }
 }
 
