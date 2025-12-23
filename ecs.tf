@@ -56,7 +56,11 @@ resource "aws_ecs_task_definition" "app" {
         { name = "SES_REGION", value = var.ses_region },
         { name = "R2_BUCKET_NAME", "value" : aws_s3_bucket.games_bucket.id },
         { name = "REDIS_HOST", value = var.enable_redis ? aws_elasticache_replication_group.redis[0].primary_endpoint_address : "" },
-        { name = "REDIS_PORT", value = var.enable_redis ? tostring(aws_elasticache_replication_group.redis[0].port) : "" }
+        { name = "REDIS_PORT", value = var.enable_redis ? tostring(aws_elasticache_replication_group.redis[0].port) : "" },
+        { name = "REDIS_CACHE_ENABLED", value = "true" },
+        { name = "REDIS_COMPRESSION_ENABLED", value = "true" },
+        { name = "REDIS_CIRCUIT_BREAKER", value = "true" },
+        { name = "LOG_FORMAT", value = "json" }
       ]
 
       secrets = [
@@ -107,7 +111,12 @@ resource "aws_ecs_task_definition" "app" {
         { name = "R2_ACCESS_KEY_ID", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:R2_ACCESS_KEY_ID::" },
         { name = "R2_SECRET_ACCESS_KEY", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:R2_SECRET_ACCESS_KEY::" },
         { name = "R2_PUBLIC_URL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:R2_PUBLIC_URL::" },
-        { name = "R2_BUCKET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:R2_BUCKET::" }
+        { name = "R2_BUCKET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:R2_BUCKET::" },
+
+        # --- JSON CDN Settings ---
+        { name = "JSON_CDN_ENABLED", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:JSON_CDN_ENABLED::" },
+        { name = "JSON_CDN_BASE_URL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:JSON_CDN_BASE_URL::" },
+        { name = "JSON_CDN_REFRESH_INTERVAL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:JSON_CDN_REFRESH_INTERVAL::" }
       ]
     }
   ])

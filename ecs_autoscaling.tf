@@ -6,8 +6,8 @@ resource "aws_appautoscaling_target" "ecs_service" {
   service_namespace  = "ecs"                      # The AWS service namespace
 
   # Define the boundaries for scaling
-  min_capacity = 1  # Minimum number of tasks to run
-  max_capacity = 20 # Maximum number of tasks to scale up to
+  min_capacity = var.environment == "development" ? 1 : 5   # Run 5 in production
+  max_capacity = var.environment == "development" ? 20 : 50 # Increased capacity ceiling for higher load
 }
 
 # 2. Create the "Scale Up" policy (add tasks when busy)
@@ -25,11 +25,11 @@ resource "aws_appautoscaling_policy" "scale_up_cpu" {
     }
 
     # The target value for the metric
-    target_value = 75.0 # Scale up if average CPU utilization goes above 75%
+    target_value = 60.0 # Scale earlier at 60% to prevent saturation
 
     # How quickly to scale up (add tasks)
-    scale_in_cooldown  = 300 # Wait 5 minutes after a scale-in before another scale-in can happen
-    scale_out_cooldown = 60  # Wait 1 minute after a scale-out before another scale-out can happen
+    scale_in_cooldown  = 180 # Wait 3 minutes after scale-in (less aggressive)
+    scale_out_cooldown = 10  # Wait 10 seconds after scale-out (very aggressive)
   }
 }
 
@@ -51,10 +51,10 @@ resource "aws_appautoscaling_policy" "scale_up_memory" {
       predefined_metric_type = "ECSServiceAverageMemoryUtilization"
     }
 
-    target_value = 75.0 # Scale up if average memory utilization goes above 75%
+    target_value = 60.0 # Scale earlier at 60% to prevent saturation
 
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 60
+    scale_in_cooldown  = 180
+    scale_out_cooldown = 10
   }
 }
 
@@ -71,8 +71,8 @@ resource "aws_appautoscaling_policy" "scale_by_rps" {
       resource_label         = "${aws_lb.app.arn_suffix}/${aws_lb_target_group.app.arn_suffix}"
     }
 
-    target_value       = 150.0 # target 150 requests per second per task
-    scale_in_cooldown  = 300
-    scale_out_cooldown = 30
+    target_value       = 100.0 # Lower threshold for faster scaling
+    scale_in_cooldown  = 180
+    scale_out_cooldown = 10
   }
 }

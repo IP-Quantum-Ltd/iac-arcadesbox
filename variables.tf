@@ -170,3 +170,8 @@ variable "cf_verify_secret" {
   sensitive   = true
   default     = "" # Can be empty for dev/staging
 }
+
+variable "cloudflare_zone_id" {
+  description = "The Zone ID from the Cloudflare dashboard"
+  type        = string
+}

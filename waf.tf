@@ -30,7 +30,7 @@ resource "aws_wafv2_web_acl" "alb_protection" {
         search_string = var.cf_verify_secret
         field_to_match {
           single_header {
-            name = "x-cf-verify" # The header name (must be lowercase in config)
+            name = "x-origin-verify" # The header name (must be lowercase in config)
           }
         }
         text_transformation {

@@ -12,7 +12,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   namespace           = "AWS/ApplicationELB"
   period              = "60"
   statistic           = "Sum"
-  threshold           = "5" # Alert if > 5 errors in 1 minute
+  threshold           = "5"
   alarm_description   = "This metric monitors ALB 5xx errors"
   treat_missing_data  = "notBreaching"
 
@@ -32,7 +32,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_latency" {
   namespace           = "AWS/ApplicationELB"
   period              = "60"
   statistic           = "Average"
-  threshold           = "2" # Alert if average latency > 2 seconds
+  threshold           = "2"
   alarm_description   = "This metric monitors ALB target response time"
   treat_missing_data  = "notBreaching"
 
@@ -82,6 +82,64 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
   dimensions = {
     ClusterName = aws_ecs_cluster.main.name
     ServiceName = aws_ecs_service.app.name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+# --- Redis Alarms ---
+
+locals {
+  # Calculate how many nodes we expect based on the environment logic in elasticache.tf
+  # This avoids "value depends on apply" errors.
+  redis_node_count = var.enable_redis ? (var.environment == "production" ? 2 : 1) : 0
+
+  # Generate a map of expected Node IDs: e.g. "001" => "cluster-id-001"
+  redis_nodes = {
+    for i in range(local.redis_node_count) :
+    format("%03d", i + 1) => "${aws_elasticache_replication_group.redis[0].id}-${format("%03d", i + 1)}"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "redis_cpu" {
+  for_each = local.redis_nodes
+
+  alarm_name          = "${var.app_name_prefix}-redis-cpu-${each.key}-${var.environment}-${var.infra_suffix}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "EngineCPUUtilization"
+  namespace           = "AWS/ElastiCache"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "85"
+  alarm_description   = "Redis Engine CPU high on node ${each.key}"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    CacheClusterId = each.value
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "redis_memory" {
+  for_each = local.redis_nodes
+
+  alarm_name          = "${var.app_name_prefix}-redis-mem-${each.key}-${var.environment}-${var.infra_suffix}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "DatabaseMemoryUsagePercentage"
+  namespace           = "AWS/ElastiCache"
+  period              = "60"
+  statistic           = "Average"
+  threshold           = "90"
+  alarm_description   = "Redis Memory high on node ${each.key}"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    CacheClusterId = each.value
   }
 
   alarm_actions = [aws_sns_topic.alerts.arn]
