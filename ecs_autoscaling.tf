@@ -1,22 +1,28 @@
 # 1. Register the ECS service as a scalable target
 resource "aws_appautoscaling_target" "ecs_service" {
+  # Enable for Prod AND Staging
+  count = var.environment != "development" ? 1 : 0
   # The service to scale
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
   scalable_dimension = "ecs:service:DesiredCount" # The attribute to scale (number of tasks)
   service_namespace  = "ecs"                      # The AWS service namespace
 
-  # Define the boundaries for scaling
-  min_capacity = var.environment == "development" ? 1 : 5   # Run 5 in production
-  max_capacity = var.environment == "development" ? 20 : 50 # Increased capacity ceiling for higher load
+  # Staging (Active): Min 5
+  min_capacity = var.environment == "production" ? var.min_capacity : (var.staging_active ? var.min_capacity : 0)
+
+  # Same logic for Max capacity (Optional, but good practice)
+  max_capacity = var.environment == "production" ? var.max_capacity : (var.staging_active ? var.max_capacity : 0)
 }
 
 # 2. Create the "Scale Up" policy (add tasks when busy)
 resource "aws_appautoscaling_policy" "scale_up_cpu" {
+  # Enable for Prod AND Staging
+  count              = var.environment != "development" ? 1 : 0
   name               = "${var.app_name_prefix}-scale-up-cpu-${var.environment}-${var.infra_suffix}"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
     # The metric to track
@@ -40,11 +46,13 @@ resource "aws_appautoscaling_policy" "scale_up_cpu" {
 
 
 resource "aws_appautoscaling_policy" "scale_up_memory" {
+  # Enable for Prod AND Staging
+  count              = var.environment != "development" ? 1 : 0
   name               = "${var.app_name_prefix}-scale-up-memory-${var.environment}-${var.infra_suffix}"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
@@ -59,11 +67,13 @@ resource "aws_appautoscaling_policy" "scale_up_memory" {
 }
 
 resource "aws_appautoscaling_policy" "scale_by_rps" {
+  # Enable for Prod AND Staging
+  count              = var.environment != "development" ? 1 : 0
   name               = "${var.app_name_prefix}-scale-by-rps-${var.environment}-${var.infra_suffix}"
   policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.ecs_service.resource_id
-  scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.ecs_service.service_namespace
+  resource_id        = aws_appautoscaling_target.ecs_service[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs_service[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs_service[0].service_namespace
 
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
@@ -71,7 +81,7 @@ resource "aws_appautoscaling_policy" "scale_by_rps" {
       resource_label         = "${aws_lb.app.arn_suffix}/${aws_lb_target_group.app.arn_suffix}"
     }
 
-    target_value       = 100.0 # Lower threshold for faster scaling
+    target_value       = 1000.0 # Lower threshold for scaling
     scale_in_cooldown  = 180
     scale_out_cooldown = 10
   }

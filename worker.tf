@@ -1,35 +1,51 @@
-# This resource takes the BUNDLED Javascript file and uploads it to Cloudflare.
-resource "cloudflare_workers_script" "game_cdn_worker" {
-  count       = var.r2_bucket_is_public ? 0 : 1
-  account_id  = var.r2_account_id
-  script_name = "${var.app_name_prefix}-games-worker-${var.environment}-${var.infra_suffix}"
+# --- Cloudflare Worker (Infrastructure Only) ---
+# This resource provisions the worker shell with its bindings and settings.
+# The actual worker CODE is deployed separately via `wrangler deploy` from the app repo's CI/CD.
+# On first `terraform apply`, a placeholder script is uploaded. It gets overwritten on first deploy.
 
-  #  Use the bundled script content ---
-  # This now points to the output of the 'wrangler' build step.
-  #content = file("${path.module}/../../dist/game_gatekeeper.js") # Assumes the bundled file is in root /dist
+resource "cloudflare_workers_script" "game_zip_processor_worker" {
+  account_id  = var.cloudflare_account_id
+  script_name = "${var.app_name_prefix}-games-zip-processor-${var.environment}-${var.infra_suffix}"
 
-  content = local.worker_script_content
+  # Placeholder content — overwritten by wrangler deploy from the app repo
+  content     = local.worker_placeholder_script
+  main_module = "index.js"
 
-  # Define the main module and compatibility date ---
-  compatibility_date = "2025-07-27" # MUST match the date in wrangler.toml
+  compatibility_date  = "2026-02-17"
+  compatibility_flags = ["nodejs_compat"]
 
-  main_module = "workers/game_gatekeeper.js"
+  # Preserve bindings when code is deployed externally via wrangler
+  keep_bindings = ["plain_text", "secret_text", "kv_namespace", "r2_bucket", "queue"]
 
   bindings = [
+    # --- R2 Bucket ---
     {
       name        = "GAMES_BUCKET"
       type        = "r2_bucket"
       bucket_name = aws_s3_bucket.games_bucket.bucket
     },
+    # --- KV Namespace ---
     {
-      name = "WORKER_JWT_SECRET"
-      type = "secret_text"
-      text = var.worker_jwt_secret
+      name         = "GAME_STATUS"
+      type         = "kv_namespace"
+      namespace_id = cloudflare_workers_kv_namespace.game_status.id
+    },
+    # --- Queues ---
+    {
+      name       = "GAME_ZIP_QUEUE"
+      type       = "queue"
+      queue_name = cloudflare_queue.game_zip_queue.queue_name
     },
     {
-      name = "ALLOWED_ORIGINS"
-      type = "secret_text"
-      text = jsonencode(["https://${var.frontend_domain_name}", "https://${var.api_domain_name}"])
+      name       = "GAME_ZIP_DLQ"
+      type       = "queue"
+      queue_name = cloudflare_queue.game_zip_dlq.queue_name
+    },
+    # --- Environment Variables ---
+    {
+      name = "BACKEND_WEBHOOK_URL"
+      type = "plain_text"
+      text = "https://${var.api_domain_name}/api/internal/game-processed"
     }
   ]
 
@@ -44,12 +60,8 @@ resource "cloudflare_workers_script" "game_cdn_worker" {
       persist            = true
     }
   }
+
+  lifecycle {
+    ignore_changes = [content]
+  }
 }
-
-# resource "cloudflare_workers_custom_domain" "games_cdn_domain" {
-#   account_id  = var.r2_account_id
-#   hostname    = var.games_cdn_domain_name
-#   environment = var.environment
-#   service     = cloudflare_workers_script.game_cdn_worker.script_name
-# }
-

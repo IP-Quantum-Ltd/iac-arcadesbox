@@ -106,6 +106,8 @@ resource "aws_elasticache_replication_group" "redis" {
   # parameter_group_name = "default.redis${element(split(".", var.redis_engine_version), 0)}"
   parameter_group_name = aws_elasticache_parameter_group.redis[0].name
 
+  apply_immediately = "true"
+
   tags = {
     Name = "${var.app_name_prefix}-redis-${var.environment}-${var.infra_suffix}"
   }

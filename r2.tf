@@ -27,3 +27,19 @@ output "r2_backup_bucket_name" {
   description = "The name of the R2 bucket for backups."
   value       = aws_s3_bucket.r2_backup_bucket.id
 }
+
+# --- R2 Event Notification ---
+# Sends a message to the game-zip-queue when a ZIP file is uploaded.
+# Flow: R2 Upload → Queue → game-zip-processor Worker
+resource "cloudflare_r2_bucket_event_notification" "game_upload_notification" {
+  account_id  = var.cloudflare_account_id
+  bucket_name = aws_s3_bucket.games_bucket.bucket
+  queue_id    = cloudflare_queue.game_zip_queue.id
+
+  rules = [{
+    actions     = ["PutObject"]
+    description = "Notify queue when a game ZIP is uploaded to temp-games/"
+    prefix      = "temp-games/"
+    suffix      = ".zip"
+  }]
+}

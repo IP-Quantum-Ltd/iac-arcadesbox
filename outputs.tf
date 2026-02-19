@@ -25,16 +25,44 @@ output "ses_dkim_cname_records" {
 
 # --- Cloudflare Worker Outputs ---
 
-# output "worker_script_name" {
-#   description = "The name of the deployed Cloudflare Worker script."
-#   value       = cloudflare_workers_script.game_cdn_worker[0].script_name
-# }
+output "worker_script_name" {
+  description = "The name of the deployed Cloudflare Worker script."
+  value       = cloudflare_workers_script.game_zip_processor_worker.script_name
+}
 
+# --- Cloudflare KV Outputs ---
 
-# output "worker_url" {
-#   description = "The full, public *.workers.dev URL for the deployed worker."
-#   value       = "https://${cloudflare_workers_script.game_cdn_worker[0].script_name}.${var.cloudflare_workers_subdomain}"
-# }
+output "kv_namespace_id" {
+  description = "The ID of the Workers KV namespace for game status tracking. Use in wrangler.toml."
+  value       = cloudflare_workers_kv_namespace.game_status.id
+}
+
+output "kv_namespace_title" {
+  description = "The title of the Workers KV namespace."
+  value       = cloudflare_workers_kv_namespace.game_status.title
+}
+
+# --- Cloudflare Queue Outputs ---
+
+output "game_zip_queue_name" {
+  description = "The name of the main game ZIP processing queue."
+  value       = cloudflare_queue.game_zip_queue.queue_name
+}
+
+output "game_zip_queue_id" {
+  description = "The ID of the main game ZIP processing queue."
+  value       = cloudflare_queue.game_zip_queue.id
+}
+
+output "game_zip_dlq_name" {
+  description = "The name of the dead letter queue for failed game processing."
+  value       = cloudflare_queue.game_zip_dlq.queue_name
+}
+
+output "game_zip_dlq_id" {
+  description = "The ID of the dead letter queue."
+  value       = cloudflare_queue.game_zip_dlq.id
+}
 
 
 # --- ElastiCache Redis Outputs ---
