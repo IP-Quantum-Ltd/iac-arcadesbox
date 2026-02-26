@@ -1,6 +1,9 @@
 # --- Cloudflare Queues ---
 # Provisions the message queues for async game processing.
-# The consumer/producer bindings are configured in the worker's wrangler.toml.
+# The consumer binding is declared in the worker's wrangler.toml [[queues.consumers]]
+# and registered by wrangler deploy. Do NOT manage cloudflare_queue_consumer here —
+# wrangler redeployments change the internal consumer_id, causing perpetual
+# destroy/create drift in Terraform.
 
 # Dead Letter Queue - receives messages that fail processing after max retries
 resource "cloudflare_queue" "game_zip_dlq" {
