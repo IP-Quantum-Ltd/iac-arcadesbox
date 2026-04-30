@@ -113,12 +113,31 @@ locals {
       }
     }
   ] : []
+
+  # --- Application Logs Widget ---
+  logs_widgets = [
+    {
+      type   = "log"
+      x      = 0
+      y      = 18
+      width  = 24
+      height = 8
+      properties = {
+        title         = "Application Logs"
+        region        = var.aws_region
+        view          = "table"
+        period        = 300
+        query         = "SOURCE '${aws_cloudwatch_log_group.app.name}' | fields @timestamp, level, message, requestId | sort @timestamp desc | limit 200"
+        logGroupNames = [aws_cloudwatch_log_group.app.name]
+      }
+    }
+  ]
 }
 
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = "${var.app_name_prefix}-dashboard-${var.environment}-${var.infra_suffix}"
 
   dashboard_body = jsonencode({
-    widgets = concat(local.standard_widgets, local.redis_widgets)
+    widgets = concat(local.standard_widgets, local.redis_widgets, local.logs_widgets)
   })
 }

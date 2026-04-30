@@ -46,6 +46,11 @@ resource "cloudflare_workers_script" "game_zip_processor_worker" {
       name = "BACKEND_WEBHOOK_URL"
       type = "plain_text"
       text = "https://${var.api_domain_name}/api/internal/game-processed"
+    },
+    {
+      name = "WEBHOOK_SECRET"
+      type = "secret_text"
+      text = var.webhook_secret
     }
   ]
 

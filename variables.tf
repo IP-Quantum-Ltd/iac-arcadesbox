@@ -207,3 +207,9 @@ variable "max_capacity" {
   type        = number
   default     = 1
 }
+
+variable "webhook_secret" {
+  description = "A secret string to secure the webhook endpoint that the worker calls when a game is processed."
+  type        = string
+  sensitive   = true
+}

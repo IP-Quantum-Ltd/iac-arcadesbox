@@ -11,7 +11,7 @@ resource "aws_s3_bucket_cors_configuration" "games_bucket_cors" {
     allowed_headers = ["*"]
     expose_headers  = ["ETag", "Location"]
     allowed_methods = ["GET", "HEAD", "PUT", "POST"]
-    allowed_origins = ["https://${var.frontend_domain_name}"]
+    allowed_origins = contains(["dev", "staging"], var.environment) ? ["*"] : ["https://${var.frontend_domain_name}"]
     max_age_seconds = 3000
   }
 }

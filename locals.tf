@@ -5,6 +5,9 @@ locals {
     export default {
       async fetch(request, env, ctx) {
         return new Response("Worker provisioned by Terraform. Deploy code via wrangler.", { status: 503 });
+      },
+      async queue(batch, env) {
+        console.log("Queue placeholder");
       }
     };
   EOF

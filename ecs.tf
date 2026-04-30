@@ -31,7 +31,7 @@ resource "aws_ecs_task_definition" "app" {
   memory                   = var.environment == "development" ? "512" : var.ecs_task_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
-  depends_on               = [null_resource.upload_env_to_secret]
+  depends_on               = [aws_secretsmanager_secret.application_secrets]
 
   container_definitions = jsonencode([
     {
@@ -106,6 +106,8 @@ resource "aws_ecs_task_definition" "app" {
         { name = "SES_FROM_EMAIL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SES_FROM_EMAIL::" },
         { name = "SENDGRID_FROM_EMAIL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SENDGRID_FROM_EMAIL::" },
         { name = "SENDGRID_API_KEY", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:SENDGRID_API_KEY::" },
+        { name = "RESEND_API_KEY", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:RESEND_API_KEY::" },
+        { name = "RESEND_FROM_EMAIL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:RESEND_FROM_EMAIL::" },
 
         # --- Twilio Credentials ---
         { name = "USE_TWILIO", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:USE_TWILIO::" },
@@ -125,11 +127,13 @@ resource "aws_ecs_task_definition" "app" {
         { name = "JSON_CDN_BASE_URL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:JSON_CDN_BASE_URL::" },
         { name = "JSON_CDN_REFRESH_INTERVAL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:JSON_CDN_REFRESH_INTERVAL::" },
         { name = "ZIP_PROCESSING_MODE", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:ZIP_PROCESSING_MODE::" },
+        { name = "LOAD_TEST_BYPASS_TOKEN", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:LOAD_TEST_BYPASS_TOKEN::" },
 
         # --- CDN Cache Management---
         { name = "CLOUDFLARE_API_TOKEN", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_API_TOKEN::" },
         { name = "CLOUDFLARE_CDN_ZONE_ID", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_CDN_ZONE_ID::" },
         { name = "CLOUDFLARE_KV_NAMESPACE_ID", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_KV_NAMESPACE_ID::" },
+        { name = "CLOUDFLARE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_WEBHOOK_SECRET::" }
       ]
     }
   ])
