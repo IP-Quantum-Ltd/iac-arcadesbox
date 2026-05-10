@@ -2,22 +2,25 @@ name: Terraform CI/CD
 
 on:
   push:
-    branches: [ dev, staging, main ]
+    branches: [dev, staging, main]
   pull_request:
-    branches: [ dev, staging, main ]
+    branches: [dev, staging, main]
   workflow_dispatch:
 
 permissions:
-  id-token: write # Required for OIDC
+  id-token: write       # OIDC: assume the github_terraform_ci_role
   contents: read
-  pull-requests: write # Required to post plan comments
+  pull-requests: write  # post sticky plan comments
 
 env:
   TF_VERSION: "1.14.0"
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Resolve which environment + tfvars to use based on the target branch
+  # Resolve which environment + workspace + tfvars apply to this run.
+  # PRs use github.base_ref (target branch); pushes use github.ref_name.
   # ---------------------------------------------------------------------------
   setup:
     name: Resolve Environment
@@ -32,38 +35,47 @@ jobs:
         run: |
           BRANCH="${{ github.base_ref || github.ref_name }}"
           case "$BRANCH" in
-            dev)
-              echo "environment=development" >> $GITHUB_OUTPUT
-              echo "workspace=development"   >> $GITHUB_OUTPUT
-              echo "tfvars=envs/dev.tfvars"  >> $GITHUB_OUTPUT
-              ;;
-            staging)
-              echo "environment=staging"         >> $GITHUB_OUTPUT
-              echo "workspace=staging"           >> $GITHUB_OUTPUT
-              echo "tfvars=envs/staging.tfvars"  >> $GITHUB_OUTPUT
-              ;;
-            main)
-              echo "environment=production"     >> $GITHUB_OUTPUT
-              echo "workspace=production"       >> $GITHUB_OUTPUT
-              echo "tfvars=envs/prod.tfvars"    >> $GITHUB_OUTPUT
-              ;;
-            *)
-              echo "::error::Unknown branch: $BRANCH"
-              exit 1
-              ;;
+            dev)     env=development; ws=development; vars=envs/dev.tfvars ;;
+            staging) env=staging;     ws=staging;     vars=envs/staging.tfvars ;;
+            main)    env=production;  ws=production;  vars=envs/prod.tfvars ;;
+            *)       echo "::error::Unknown branch: $BRANCH"; exit 1 ;;
           esac
+          {
+            echo "environment=$env"
+            echo "workspace=$ws"
+            echo "tfvars=$vars"
+          } >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
-  # terraform plan — runs on every push and PR
+  # Format gate. Cheap, runs in parallel with setup. Blocks plan if it fails.
   # ---------------------------------------------------------------------------
-  terraform-plan:
-    name: Terraform Plan (${{ needs.setup.outputs.environment }})
+  fmt:
+    name: terraform fmt
     runs-on: ubuntu-latest
-    needs: setup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+
+  # ---------------------------------------------------------------------------
+  # terraform plan — runs on every push and PR. Output is uploaded as artifact
+  # for the apply job and posted as a sticky PR comment.
+  # ---------------------------------------------------------------------------
+  plan:
+    name: Plan (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [setup, fmt]
     environment: ${{ needs.setup.outputs.environment }}
+    # Serialize all operations against the same workspace across runs.
+    # Different workspaces (dev vs staging vs prod) can run in parallel.
+    concurrency:
+      group: tf-${{ needs.setup.outputs.workspace }}
+      cancel-in-progress: false
 
     env:
-      # Sensitive tfvars values injected as TF_VAR_* — Terraform reads these automatically
       TF_VAR_r2_secret_access_key: ${{ secrets.TF_VAR_R2_SECRET_ACCESS_KEY }}
       TF_VAR_r2_access_key_id: ${{ secrets.TF_VAR_R2_ACCESS_KEY_ID }}
       TF_VAR_worker_jwt_secret: ${{ secrets.TF_VAR_WORKER_JWT_SECRET }}
@@ -71,24 +83,30 @@ jobs:
       TF_VAR_cloudflare_zone_id: ${{ secrets.TF_VAR_CLOUDFLARE_ZONE_ID }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Verify tfvars exists
+        run: |
+          if [ ! -f "${{ needs.setup.outputs.tfvars }}" ]; then
+            echo "::error::Missing tfvars file: ${{ needs.setup.outputs.tfvars }}"
+            exit 1
+          fi
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Select or Create Workspace
+      - name: Select / create workspace
         run: terraform workspace select -or-create ${{ needs.setup.outputs.workspace }}
 
       - name: Terraform Validate
@@ -97,59 +115,69 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
+          set +e
           terraform plan \
             -var-file=${{ needs.setup.outputs.tfvars }} \
             -out=tfplan \
-            -no-color 2>&1 | tee plan_output.txt
-        continue-on-error: true
+            -no-color > plan_output.txt 2>&1
+          code=$?
+          cat plan_output.txt
+          exit $code
 
       - name: Upload plan artifact
-        uses: actions/upload-artifact@v4
+        if: success()
+        uses: actions/upload-artifact@v7
         with:
-          name: tfplan-${{ needs.setup.outputs.workspace }}
+          name: tfplan-${{ needs.setup.outputs.workspace }}-${{ github.run_id }}
           path: tfplan
-          retention-days: 1
+          retention-days: 7
 
-      # Post plan output as a sticky PR comment (updates existing comment on re-runs)
-      - name: Post Plan to PR
-        if: github.event_name == 'pull_request'
+      # GitHub PR comments cap at 65536 chars; truncate to stay safely below.
+      - name: Prepare plan comment body
+        if: always() && github.event_name == 'pull_request'
+        id: plan-text
+        run: |
+          {
+            echo 'body<<__TF_PLAN_EOF__'
+            head -c 60000 plan_output.txt
+            if [ "$(wc -c < plan_output.txt)" -gt 60000 ]; then
+              printf '\n... (truncated — see job logs for full output)\n'
+            fi
+            echo '__TF_PLAN_EOF__'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post plan to PR
+        if: always() && github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: terraform-plan
+          header: terraform-plan-${{ needs.setup.outputs.workspace }}
           message: |
-            ### Terraform Plan — `${{ needs.setup.outputs.environment }}`
-            <details><summary>Show Plan</summary>
+            ### Terraform Plan — `${{ needs.setup.outputs.environment }}` (workspace: `${{ needs.setup.outputs.workspace }}`)
+            Run: ${{ github.run_id }} · Outcome: `${{ steps.plan.outcome }}`
+            <details><summary>Show plan output</summary>
 
             ```hcl
-            ${{ steps.plan.outputs.stdout }}
+            ${{ steps.plan-text.outputs.body }}
             ```
             </details>
 
-      - name: Fail if plan failed
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
   # ---------------------------------------------------------------------------
-  # terraform apply — only on push (after merge), never on PRs
-  # Production requires manual approval via GitHub Environment protection rules
+  # terraform apply — only on push (after merge), never on PRs.
+  # Production gates on GitHub Environment protection rules (required reviewers).
+  # The saved plan has tfvars baked in, so we don't need TF_VAR_* here.
   # ---------------------------------------------------------------------------
-  terraform-apply:
-    name: Terraform Apply (${{ needs.setup.outputs.environment }})
+  apply:
+    name: Apply (${{ needs.setup.outputs.environment }})
     runs-on: ubuntu-latest
-    needs: [ setup, terraform-plan ]
+    needs: [setup, plan]
     if: github.event_name == 'push'
     environment: ${{ needs.setup.outputs.environment }}
-
-    env:
-      TF_VAR_r2_secret_access_key: ${{ secrets.TF_VAR_R2_SECRET_ACCESS_KEY }}
-      TF_VAR_r2_access_key_id: ${{ secrets.TF_VAR_R2_ACCESS_KEY_ID }}
-      TF_VAR_worker_jwt_secret: ${{ secrets.TF_VAR_WORKER_JWT_SECRET }}
-      TF_VAR_cloudflare_api_token: ${{ secrets.TF_VAR_CLOUDFLARE_API_TOKEN }}
-      TF_VAR_cloudflare_zone_id: ${{ secrets.TF_VAR_CLOUDFLARE_ZONE_ID }}
+    concurrency:
+      group: tf-${{ needs.setup.outputs.workspace }}
+      cancel-in-progress: false
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
@@ -157,21 +185,21 @@ jobs:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Select Workspace
+      - name: Select workspace
         run: terraform workspace select ${{ needs.setup.outputs.workspace }}
 
       - name: Download plan artifact
         uses: actions/download-artifact@v8
         with:
-          name: tfplan-${{ needs.setup.outputs.workspace }}
+          name: tfplan-${{ needs.setup.outputs.workspace }}-${{ github.run_id }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve -no-color tfplan
