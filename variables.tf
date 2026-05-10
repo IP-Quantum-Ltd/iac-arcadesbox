@@ -213,3 +213,29 @@ variable "webhook_secret" {
   type        = string
   sensitive   = true
 }
+
+# --- AI Agent Service ---
+
+variable "ai_agent_cpu" {
+  description = "CPU units for the AI agent task. Must be a valid Fargate combination with ai_agent_memory."
+  type        = string
+  default     = "1024"
+}
+
+variable "ai_agent_memory" {
+  description = "Memory (MiB) for the AI agent task. Headroom for Playwright Chromium + Python/LangChain runtime."
+  type        = string
+  default     = "2048"
+}
+
+variable "ai_agent_image_tag" {
+  description = "ECR image tag to deploy for the AI agent. Defaults to placeholder until the AI team's CI lands."
+  type        = string
+  default     = "placeholder"
+}
+
+variable "ai_agent_active" {
+  description = "Set true to spin up the AI agent ECS service. False holds desired_count at 0 to avoid spend."
+  type        = bool
+  default     = false
+}

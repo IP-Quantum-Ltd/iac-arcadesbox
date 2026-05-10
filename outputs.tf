@@ -65,6 +65,28 @@ output "game_zip_dlq_id" {
 }
 
 
+# --- AI Agent Outputs ---
+
+output "ai_agent_log_group_name" {
+  description = "CloudWatch log group for the AI agent ECS service."
+  value       = aws_cloudwatch_log_group.ai_agent.name
+}
+
+output "ai_agent_service_name" {
+  description = "ECS service name for the AI agent."
+  value       = aws_ecs_service.ai_agent.name
+}
+
+output "ai_agent_task_family" {
+  description = "ECS task definition family for the AI agent."
+  value       = aws_ecs_task_definition.ai_agent.family
+}
+
+output "ai_agent_security_group_id" {
+  description = "Security group attached to the AI agent ECS tasks."
+  value       = aws_security_group.ai_agent_service.id
+}
+
 # --- ElastiCache Redis Outputs ---
 
 output "redis_primary_endpoint" {

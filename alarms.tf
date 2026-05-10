@@ -88,6 +88,55 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
+# --- AI Agent Alarms ---
+
+resource "aws_cloudwatch_metric_alarm" "ai_agent_cpu" {
+  alarm_name          = "${var.app_name_prefix}-ai-agent-high-cpu-${var.environment}-${var.infra_suffix}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "3"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "85"
+  alarm_description   = "AI agent ECS task CPU utilization is high"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.ai_agent.name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "ai_agent_memory" {
+  alarm_name          = "${var.app_name_prefix}-ai-agent-high-memory-${var.environment}-${var.infra_suffix}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "3"
+  metric_name         = "MemoryUtilization"
+  namespace           = "AWS/ECS"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "85"
+  alarm_description   = "AI agent ECS task memory utilization is high"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ClusterName = aws_ecs_cluster.main.name
+    ServiceName = aws_ecs_service.ai_agent.name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+# NOTE: a "running task count == 0" alarm would require Container Insights
+# (cluster setting `containerInsights = "enabled"`), which is currently off.
+# Skip it for now; CPU/memory alarms above plus deployment-event notifications
+# from the SNS topic are sufficient given desired_count=1.
+
 # --- Redis Alarms ---
 
 locals {
