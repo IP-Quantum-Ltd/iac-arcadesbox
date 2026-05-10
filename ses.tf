@@ -19,33 +19,30 @@ resource "aws_ses_email_identity" "chareli_from_email" {
   email    = var.ses_from_email_address
 }
 
-# --- DNS Records for SES Verification (using Route 53) ---
-# These assume your parent domain (e.g., reallygreattech.com) or the specific
-# subdomain (dev.chareli.reallygreattech.com if it's its own zone) is managed in Route 53
-# and accessible via data.aws_route53_zone.primary (which points to reallygreattech.com.)
-# or a new data source for dev.chareli.reallygreattech.com.
+# --- DNS Records for SES Verification ---
 
-# If dev.chareli.reallygreattech.com is a SUBDOMAIN within the reallygreattech.com ZONE:
 
-data "aws_route53_zone" "parent_hosted_zone_for_ses" { # Using a different name for clarity
-  name = "${var.root_domain_name}."                    # Assuming dev.chareli is within this zone
-}
 
-# TXT record for SES domain verification (_amazonses.dev.chareli.reallygreattech.com)
-resource "aws_route53_record" "ses_domain_verification_txt" {
-  zone_id = data.aws_route53_zone.parent_hosted_zone_for_ses.zone_id
-  name    = "_amazonses.${var.ses_sending_domain}" # e.g., _amazonses.dev.chareli.reallygreattech.com
+# ses.tf (Append this)
+
+# SES Domain Verification
+resource "cloudflare_dns_record" "ses_domain_verification_txt" {
+  zone_id = var.cloudflare_zone_id
+  name    = "_amazonses.${var.ses_sending_domain}"
   type    = "TXT"
-  ttl     = "600"
-  records = [aws_ses_domain_identity.chareli_sending_domain.verification_token]
+  content = aws_ses_domain_identity.chareli_sending_domain.verification_token
+  ttl     = 600
+  proxied = false
 }
 
-# CNAME records for SES DKIM verification
-resource "aws_route53_record" "ses_domain_dkim_cname" {
-  count   = 3 # SES usually provides 3 DKIM tokens/records
-  zone_id = data.aws_route53_zone.parent_hosted_zone_for_ses.zone_id
+# SES DKIM Records
+resource "cloudflare_dns_record" "ses_domain_dkim_cname" {
+  count   = 3
+  zone_id = var.cloudflare_zone_id
+  # We use element() to grab the tokens from the AWS resource
   name    = "${element(aws_ses_domain_dkim.chareli_sending_domain_dkim.dkim_tokens, count.index)}._domainkey.${var.ses_sending_domain}"
   type    = "CNAME"
-  ttl     = "600"
-  records = ["${element(aws_ses_domain_dkim.chareli_sending_domain_dkim.dkim_tokens, count.index)}.dkim.amazonses.com"]
+  content = "${element(aws_ses_domain_dkim.chareli_sending_domain_dkim.dkim_tokens, count.index)}.dkim.amazonses.com"
+  ttl     = 600
+  proxied = false
 }

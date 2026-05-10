@@ -26,7 +26,6 @@ r2_account_id                 = "your-cloudflare-account-id"
 r2_access_key_id              = "R2ACCESSKEYIDHERE"
 r2_secret_access_key          = "R2SECRETACCESSKEYHERE"
 r2_public_cname_target        = "public.r2.examplecdn.com"
-r2_bucket_is_public           = false # true = skip Worker, directly use R2
 
 # --- GitHub OIDC Deployment ---
 github_org    = "example-org"

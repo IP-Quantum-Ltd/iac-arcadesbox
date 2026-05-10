@@ -1,7 +1,16 @@
 locals {
-  # This reads the content of the bundled worker script.
-  # Make sure you run "npm run build" before running terraform.
-  worker_script_content = file("dist/game_gatekeeper.js")
+  # Placeholder worker script — deployed on first terraform apply.
+  # The real worker code is deployed separately via `wrangler deploy` from the app repo.
+  worker_placeholder_script = <<-EOF
+    export default {
+      async fetch(request, env, ctx) {
+        return new Response("Worker provisioned by Terraform. Deploy code via wrangler.", { status: 503 });
+      },
+      async queue(batch, env) {
+        console.log("Queue placeholder");
+      }
+    };
+  EOF
 
   enable_ecs_exec = var.environment != "production" && var.environment != "prod"
 }

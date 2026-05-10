@@ -84,17 +84,17 @@ resource "aws_elasticache_replication_group" "redis" {
   count = var.enable_redis ? 1 : 0
 
   replication_group_id = "${var.app_name_prefix}-${var.environment}-${var.infra_suffix}"
-  description          = "ElastiCache Redis for the Chareli application"
+  description          = "ElastiCache Redis for the arcadesbox application"
 
-  node_type      = var.redis_node_type
+  node_type      = var.environment == "development" ? "cache.t4g.micro" : "cache.t4g.small"
   engine         = "redis"
   engine_version = var.redis_engine_version
   port           = 6379
 
-  # For a simple, single-node dev/staging setup.
+
   # For production, you would increase num_cache_clusters.
-  num_cache_clusters         = 1
-  automatic_failover_enabled = false
+  num_cache_clusters         = var.environment == "production" ? 2 : 1
+  automatic_failover_enabled = var.environment == "production" ? true : false
 
   subnet_group_name  = aws_elasticache_subnet_group.redis[0].name
   security_group_ids = [aws_security_group.redis_sg[0].id]
@@ -105,6 +105,8 @@ resource "aws_elasticache_replication_group" "redis" {
   # We can construct this by splitting the version string.
   # parameter_group_name = "default.redis${element(split(".", var.redis_engine_version), 0)}"
   parameter_group_name = aws_elasticache_parameter_group.redis[0].name
+
+  apply_immediately = "true"
 
   tags = {
     Name = "${var.app_name_prefix}-redis-${var.environment}-${var.infra_suffix}"

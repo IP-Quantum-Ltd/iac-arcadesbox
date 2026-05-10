@@ -40,6 +40,7 @@ data "aws_iam_policy_document" "ecs_backup_task_policy_doc" {
     sid    = "DynamoDBLockingAccess"
     effect = "Allow"
     actions = [
+      "dynamodb:GetItem",
       "dynamodb:PutItem",
       "dynamodb:DeleteItem"
     ]
@@ -62,12 +63,23 @@ resource "aws_iam_role_policy_attachment" "ecs_backup_task_policy_attachment" {
 # ECS Task Definition for the Backup Job
 # =================================================================
 
+resource "aws_cloudwatch_log_group" "backup_tool" {
+  name              = "/ecs/${var.app_name_prefix}-backup-tool-${var.environment}-${var.infra_suffix}"
+  retention_in_days = 30
+
+  tags = {
+    Project     = var.app_name_prefix
+    Environment = var.environment
+    Component   = "BackupTool"
+  }
+}
+
 resource "aws_ecs_task_definition" "backup_tool" {
   family                   = "${var.app_name_prefix}-backup-tool-${var.environment}-${var.infra_suffix}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "2048"                              # 2 vCPU
-  memory                   = "4096"                              # 4 GB
+  cpu                      = "256"
+  memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn # Re-use the standard execution role
   task_role_arn            = aws_iam_role.ecs_backup_task.arn    # Use our new dedicated task role
 
@@ -79,7 +91,7 @@ resource "aws_ecs_task_definition" "backup_tool" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.app.name # Can re-use the app log group
+          "awslogs-group"         = aws_cloudwatch_log_group.backup_tool.name # Use dedicated log group
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "backup-tool"
         }
@@ -95,7 +107,7 @@ resource "aws_ecs_task_definition" "backup_tool" {
       ]
       # Non-secret environment variables
       environment = [
-        { name = "AWS_S3_REGION", value = var.aws_region },
+        { name = "AWS_REGION", value = var.aws_region },
         { name = "AWS_S3_BUCKET", value = aws_s3_bucket.aws_backup_bucket.id },
         { name = "R2_SOURCE_BUCKET", value = aws_s3_bucket.games_bucket.id },
         { name = "R2_DEST_BUCKET", value = aws_s3_bucket.r2_backup_bucket.id },
