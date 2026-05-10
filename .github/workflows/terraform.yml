@@ -81,6 +81,8 @@ jobs:
       TF_VAR_worker_jwt_secret: ${{ secrets.TF_VAR_WORKER_JWT_SECRET }}
       TF_VAR_cloudflare_api_token: ${{ secrets.TF_VAR_CLOUDFLARE_API_TOKEN }}
       TF_VAR_cloudflare_zone_id: ${{ secrets.TF_VAR_CLOUDFLARE_ZONE_ID }}
+      TF_VAR_webhook_secret: ${{ secrets.TF_VAR_WEBHOOK_SECRET }}
+      TF_VAR_cf_verify_secret: ${{ secrets.TF_VAR_CF_VERIFY_SECRET }}
 
     steps:
       - uses: actions/checkout@v6

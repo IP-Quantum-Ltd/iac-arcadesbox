@@ -18,8 +18,12 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Terraform variable definition files that should not be committed (if containing sensitive data)
+# Terraform variable definition files. *.tfvars is gitignored by default — only
+# the per-environment files under envs/ are committed (and have all sensitive
+# values stripped; secrets flow in via TF_VAR_* env from GitHub Environment secrets).
 *.tfvars
+!envs/*.tfvars
+envs/testing.tfvars
 terraform.tfvars
 
 # Terraform lock file (optional: remove if you want deterministic builds)
