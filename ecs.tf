@@ -67,7 +67,11 @@ resource "aws_ecs_task_definition" "app" {
         { name = "REDIS_CACHE_ENABLED", value = "true" },
         { name = "REDIS_COMPRESSION_ENABLED", value = "true" },
         { name = "REDIS_CIRCUIT_BREAKER", value = "true" },
-        { name = "LOG_FORMAT", value = "json" }
+        { name = "LOG_FORMAT", value = "json" },
+
+        # AI agent base URL (Service Connect, internal). Server's
+        # notifyProposalCreated POSTs to ${url}/webhook/proposal-created.
+        { name = "AI_AGENT_WEBHOOK_URL", value = "http://ai-agent:8000" }
       ]
 
       secrets = [
@@ -133,7 +137,12 @@ resource "aws_ecs_task_definition" "app" {
         { name = "CLOUDFLARE_API_TOKEN", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_API_TOKEN::" },
         { name = "CLOUDFLARE_CDN_ZONE_ID", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_CDN_ZONE_ID::" },
         { name = "CLOUDFLARE_KV_NAMESPACE_ID", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_KV_NAMESPACE_ID::" },
-        { name = "CLOUDFLARE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_WEBHOOK_SECRET::" }
+        { name = "CLOUDFLARE_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:CLOUDFLARE_WEBHOOK_SECRET::" },
+
+        # Shared secret used by notifyProposalCreated to authenticate against
+        # the AI agent's /webhook/proposal-created endpoint. Same value must be
+        # seeded as WEBHOOK_SECRET in ai-agent-secrets.
+        { name = "AI_AGENT_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_SECRET::" }
       ]
     }
   ])
@@ -166,6 +175,20 @@ resource "aws_ecs_service" "app" {
     target_group_arn = aws_lb_target_group.app.arn
     container_name   = "${var.app_name_prefix}-ecs-backend-${var.environment}-server-${var.infra_suffix}"
     container_port   = 5000
+  }
+
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_http_namespace.main.arn
+
+    log_configuration {
+      log_driver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-region"        = var.aws_region
+        "awslogs-stream-prefix" = "service-connect"
+      }
+    }
   }
 
   deployment_controller {
