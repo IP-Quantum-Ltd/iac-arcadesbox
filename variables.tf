@@ -128,6 +128,12 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
+variable "cloudflare_api_token" {
+  description = "API token for the Cloudflare provider. Must have Workers, KV, and Queues permissions."
+  type        = string
+  sensitive   = true
+}
+
 variable "enable_redis" {
   description = "Set to true to create an ElastiCache Redis cluster."
   type        = bool
@@ -146,11 +152,7 @@ variable "redis_engine_version" {
   default     = "7.0" # Use a recent, stable version
 }
 
-variable "r2_bucket_is_public" {
-  description = "If true, the games CDN domain will point directly to the public R2 endpoint. If false, it will point to the secure worker."
-  type        = bool
-  default     = true
-}
+
 
 variable "s3_backup_gir_transition_days" {
   description = "Number of days after which to transition S3 backup objects to Glacier Instant Retrieval."
@@ -169,4 +171,71 @@ variable "cf_verify_secret" {
   type        = string
   sensitive   = true
   default     = "" # Can be empty for dev/staging
+}
+
+variable "cloudflare_zone_id" {
+  description = "The Zone ID from the Cloudflare dashboard"
+  type        = string
+}
+
+variable "ecs_task_cpu" {
+  description = "CPU units for the App (256, 512, 1024, 2048). Default high for Prod, override for Dev."
+  type        = string
+  default     = "1024" # 1 vCPU - Good baseline for 2k users/instance
+}
+
+variable "ecs_task_memory" {
+  description = "Memory for the App. Default high for Prod."
+  type        = string
+  default     = "2048" # 2 GB
+}
+
+variable "staging_active" {
+  description = "Set to true to spin up Staging ECS tasks for testing. Set false to save compute costs."
+  type        = bool
+  default     = false
+}
+
+variable "min_capacity" {
+  description = "Minimum number of tasks to run in the ECS service."
+  type        = number
+  default     = 1
+}
+
+variable "max_capacity" {
+  description = "Maximum number of tasks to run in the ECS service."
+  type        = number
+  default     = 1
+}
+
+variable "webhook_secret" {
+  description = "A secret string to secure the webhook endpoint that the worker calls when a game is processed."
+  type        = string
+  sensitive   = true
+}
+
+# --- AI Agent Service ---
+
+variable "ai_agent_cpu" {
+  description = "CPU units for the AI agent task. Must be a valid Fargate combination with ai_agent_memory."
+  type        = string
+  default     = "1024"
+}
+
+variable "ai_agent_memory" {
+  description = "Memory (MiB) for the AI agent task. Headroom for Playwright Chromium + Python/LangChain runtime."
+  type        = string
+  default     = "2048"
+}
+
+variable "ai_agent_image_tag" {
+  description = "ECR image tag to deploy for the AI agent. Defaults to placeholder until the AI team's CI lands."
+  type        = string
+  default     = "placeholder"
+}
+
+variable "ai_agent_active" {
+  description = "Set true to spin up the AI agent ECS service. False holds desired_count at 0 to avoid spend."
+  type        = bool
+  default     = false
 }

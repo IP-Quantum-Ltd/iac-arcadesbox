@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
 
     time = {
@@ -13,7 +13,7 @@ terraform {
 
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 5"
+      version = "~> 5.13"
     }
   }
 }
@@ -65,3 +65,9 @@ provider "aws" {
   region = var.ses_region
 }
 
+# --- Cloudflare Provider ---
+# Used for native Cloudflare resources: Workers, KV, Queues, DNS.
+# Auth via API token (set CLOUDFLARE_API_TOKEN env var or pass via variable).
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}

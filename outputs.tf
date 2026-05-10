@@ -25,17 +25,67 @@ output "ses_dkim_cname_records" {
 
 # --- Cloudflare Worker Outputs ---
 
-# output "worker_script_name" {
-#   description = "The name of the deployed Cloudflare Worker script."
-#   value       = cloudflare_workers_script.game_cdn_worker[0].script_name
-# }
+output "worker_script_name" {
+  description = "The name of the deployed Cloudflare Worker script."
+  value       = cloudflare_workers_script.game_zip_processor_worker.script_name
+}
+
+# --- Cloudflare KV Outputs ---
+
+output "kv_namespace_id" {
+  description = "The ID of the Workers KV namespace for game status tracking. Use in wrangler.toml."
+  value       = cloudflare_workers_kv_namespace.game_status.id
+}
+
+output "kv_namespace_title" {
+  description = "The title of the Workers KV namespace."
+  value       = cloudflare_workers_kv_namespace.game_status.title
+}
+
+# --- Cloudflare Queue Outputs ---
+
+output "game_zip_queue_name" {
+  description = "The name of the main game ZIP processing queue."
+  value       = cloudflare_queue.game_zip_queue.queue_name
+}
+
+output "game_zip_queue_id" {
+  description = "The ID of the main game ZIP processing queue."
+  value       = cloudflare_queue.game_zip_queue.id
+}
+
+output "game_zip_dlq_name" {
+  description = "The name of the dead letter queue for failed game processing."
+  value       = cloudflare_queue.game_zip_dlq.queue_name
+}
+
+output "game_zip_dlq_id" {
+  description = "The ID of the dead letter queue."
+  value       = cloudflare_queue.game_zip_dlq.id
+}
 
 
-# output "worker_url" {
-#   description = "The full, public *.workers.dev URL for the deployed worker."
-#   value       = "https://${cloudflare_workers_script.game_cdn_worker[0].script_name}.${var.cloudflare_workers_subdomain}"
-# }
+# --- AI Agent Outputs ---
 
+output "ai_agent_log_group_name" {
+  description = "CloudWatch log group for the AI agent ECS service."
+  value       = aws_cloudwatch_log_group.ai_agent.name
+}
+
+output "ai_agent_service_name" {
+  description = "ECS service name for the AI agent."
+  value       = aws_ecs_service.ai_agent.name
+}
+
+output "ai_agent_task_family" {
+  description = "ECS task definition family for the AI agent."
+  value       = aws_ecs_task_definition.ai_agent.family
+}
+
+output "ai_agent_security_group_id" {
+  description = "Security group attached to the AI agent ECS tasks."
+  value       = aws_security_group.ai_agent_service.id
+}
 
 # --- ElastiCache Redis Outputs ---
 

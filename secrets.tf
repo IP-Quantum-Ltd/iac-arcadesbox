@@ -9,31 +9,9 @@ resource "aws_secretsmanager_secret" "backup_tool_secrets" {
 
 }
 
-resource "null_resource" "upload_env_to_secret" {
-  triggers = {
-    env_file_hash = filemd5("${path.root}/.env")
-  }
-
-  depends_on = [aws_secretsmanager_secret.application_secrets]
-
-
-  provisioner "local-exec" {
-    command = "./scripts/upload-secrets.sh '${path.root}/.env' '${aws_secretsmanager_secret.application_secrets.name}' '${var.aws_region}'"
-  }
-}
-
-resource "null_resource" "upload_backup_env_to_secret" {
-  triggers = {
-    env_file_hash = filemd5("${path.root}/.env.backup")
-  }
-
-  depends_on = [aws_secretsmanager_secret.backup_tool_secrets]
-
-
-  provisioner "local-exec" {
-    command = "./scripts/upload-secrets.sh '${path.root}/.env.backup' '${aws_secretsmanager_secret.backup_tool_secrets.name}' '${var.aws_region}'"
-  }
-}
+# Secret values are managed manually via AWS CLI/Console.
+# Terraform only provisions the secret shell (name + ARN).
+# Use scripts/upload-secrets.sh independently to populate values.
 
 output "application_secrets_arn" {
   description = "ARN of the consolidated application secrets"

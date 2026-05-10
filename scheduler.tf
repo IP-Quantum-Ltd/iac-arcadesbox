@@ -41,6 +41,11 @@ resource "aws_iam_policy" "eventbridge_scheduler_ecs_policy" {
           aws_iam_role.ecs_backup_task.arn,
           aws_iam_role.ecs_task_execution.arn
         ]
+        Condition = {
+          StringLike = {
+            "iam:PassedToService" = "ecs-tasks.amazonaws.com"
+          }
+        }
       }
     ]
   })
@@ -71,8 +76,9 @@ resource "aws_scheduler_schedule" "run_daily_backup_task" {
       launch_type         = "FARGATE"
 
       network_configuration {
-        subnets         = aws_subnet.private[*].id
-        security_groups = [aws_security_group.ecs_service.id] # Can likely re-use this SG
+        subnets          = var.environment == "production" ? aws_subnet.private[*].id : aws_subnet.public[*].id
+        assign_public_ip = var.environment == "production" ? false : true
+        security_groups  = [aws_security_group.ecs_service.id] # Can likely re-use this SG
       }
     }
   }

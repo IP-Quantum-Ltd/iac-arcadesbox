@@ -51,7 +51,10 @@ data "aws_iam_policy_document" "github_oidc_policy_doc" {
       "ecr:DescribeImages"
     ]
     # Dynamically reference the ECR repository ARN from ecr.tf
-    resources = [aws_ecr_repository.chareli_server.arn]
+    resources = [
+      aws_ecr_repository.chareli_server.arn,
+      aws_ecr_repository.ai_agent.arn,
+    ]
   }
 
   statement {
@@ -76,8 +79,10 @@ data "aws_iam_policy_document" "github_oidc_policy_doc" {
     resources = [
       # Grant permission to register any revision of our specific task definition family
       "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${aws_ecs_task_definition.app.family}:*",
+      "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/${aws_ecs_task_definition.ai_agent.family}:*",
       # Grant permission to update our specific service in our specific cluster
-      aws_ecs_service.app.id # Service ARN is its ID in this context
+      aws_ecs_service.app.id, # Service ARN is its ID in this context
+      aws_ecs_service.ai_agent.id,
     ]
   }
 
@@ -100,7 +105,9 @@ data "aws_iam_policy_document" "github_oidc_policy_doc" {
     # Restrict PassRole to ONLY the roles that ECS tasks need to assume.
     resources = [
       aws_iam_role.ecs_task_execution.arn,
-      aws_iam_role.ecs_task.arn
+      aws_iam_role.ecs_task.arn,
+      aws_iam_role.ai_agent_task_execution.arn,
+      aws_iam_role.ai_agent_task.arn,
     ]
     # Add a condition to be extra secure, ensuring it's only passed to ECS
     condition {
