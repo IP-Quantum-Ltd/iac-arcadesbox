@@ -115,8 +115,8 @@ resource "aws_ecs_task_definition" "ai_agent" {
         # { name = "AWS_REGION", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_REGION::" },
         { name = "AWS_ACCESS_KEY_ID", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_ACCESS_KEY_ID::" },
         { name = "AWS_SECRET_ACCESS_KEY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_SECRET_ACCESS_KEY::" },
-        { name = "AWS_S3_BUCKET", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_S3_BUCKET::" },
-        { name = "AI_AGENT_S3_PREFIX", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AI_AGENT_S3_PREFIX::" },
+        # { name = "AWS_S3_BUCKET", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_S3_BUCKET::" },
+        # { name = "AI_AGENT_S3_PREFIX", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AI_AGENT_S3_PREFIX::" },
       ]
     }
   ])
