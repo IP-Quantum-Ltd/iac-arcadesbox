@@ -53,7 +53,12 @@ resource "aws_ecs_task_definition" "ai_agent" {
         { name = "STORAGE_PROVIDER", value = "r2" },
         { name = "AWS_S3_BUCKET", value = aws_s3_bucket.games_bucket.id },
         { name = "R2_BUCKET_NAME", value = aws_s3_bucket.games_bucket.id },
-        { name = "AI_AGENT_S3_PREFIX", value = "ai-agent/stage0" }
+        { name = "AI_AGENT_S3_PREFIX", value = "ai-agent/stage0" },
+        { name = "GAME_SWEEP_ENABLED", value = "true" },
+        { name = "GAME_SWEEP_SCHEDULE", value = "weekly" },
+        { name = "GAME_SWEEP_DAY", value = "tue" },
+        { name = "GAME_SWEEP_HOUR", value = "17" },
+        { name = "GAME_SWEEP_MINUTE", value = "0" }
       ]
 
       secrets = [
@@ -112,11 +117,8 @@ resource "aws_ecs_task_definition" "ai_agent" {
         { name = "LANGSMITH_API_KEY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_API_KEY::" },
         { name = "LANGSMITH_PROJECT", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_PROJECT::" },
         { name = "LANGSMITH_ENDPOINT", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_ENDPOINT::" },
-        # { name = "AWS_REGION", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_REGION::" },
         { name = "AWS_ACCESS_KEY_ID", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_ACCESS_KEY_ID::" },
         { name = "AWS_SECRET_ACCESS_KEY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_SECRET_ACCESS_KEY::" },
-        # { name = "AWS_S3_BUCKET", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_S3_BUCKET::" },
-        # { name = "AI_AGENT_S3_PREFIX", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AI_AGENT_S3_PREFIX::" },
       ]
     }
   ])
