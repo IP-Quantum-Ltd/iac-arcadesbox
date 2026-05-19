@@ -61,7 +61,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "AWS_S3_BUCKET", value = aws_s3_bucket.games_bucket.id },
         { name = "CLIENT_URL", value = "https://${var.frontend_domain_name}" },
         { name = "SES_REGION", value = var.ses_region },
-        { name = "R2_BUCKET_NAME", "value" : aws_s3_bucket.games_bucket.id },
+        { name = "R2_BUCKET_NAME", value = aws_s3_bucket.games_bucket.id },
         { name = "REDIS_HOST", value = var.enable_redis ? aws_elasticache_replication_group.redis[0].primary_endpoint_address : "" },
         { name = "REDIS_PORT", value = var.enable_redis ? tostring(aws_elasticache_replication_group.redis[0].port) : "" },
         { name = "REDIS_CACHE_ENABLED", value = "true" },
