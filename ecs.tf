@@ -61,17 +61,23 @@ resource "aws_ecs_task_definition" "app" {
         { name = "AWS_S3_BUCKET", value = aws_s3_bucket.games_bucket.id },
         { name = "CLIENT_URL", value = "https://${var.frontend_domain_name}" },
         { name = "SES_REGION", value = var.ses_region },
-        { name = "R2_BUCKET_NAME", "value" : aws_s3_bucket.games_bucket.id },
+        { name = "R2_BUCKET_NAME", value = aws_s3_bucket.games_bucket.id },
         { name = "REDIS_HOST", value = var.enable_redis ? aws_elasticache_replication_group.redis[0].primary_endpoint_address : "" },
         { name = "REDIS_PORT", value = var.enable_redis ? tostring(aws_elasticache_replication_group.redis[0].port) : "" },
         { name = "REDIS_CACHE_ENABLED", value = "true" },
         { name = "REDIS_COMPRESSION_ENABLED", value = "true" },
         { name = "REDIS_CIRCUIT_BREAKER", value = "true" },
         { name = "LOG_FORMAT", value = "json" },
+        { name = "APP_URL", value = "https://${var.api_domain_name}/api" },
+        { name = "GAME_SWEEP_ENABLED", value = "true" },
+        { name = "GAME_SWEEP_SCHEDULE", value = "weekly" },
+        { name = "GAME_SWEEP_DAY", value = "tue" },
+        { name = "GAME_SWEEP_HOUR", value = "16" },
+        { name = "GAME_SWEEP_MINUTE", value = "0" },
 
         # AI agent base URL (Service Connect, internal). Server's
         # notifyProposalCreated POSTs to ${url}/webhook/proposal-created.
-        { name = "AI_AGENT_WEBHOOK_URL", value = "http://ai-agent:8000" }
+        { name = "AI_AGENT_INTERNAL_URL", value = "http://ai-agent:8000" }
       ]
 
       secrets = [
@@ -142,7 +148,8 @@ resource "aws_ecs_task_definition" "app" {
         # Shared secret used by notifyProposalCreated to authenticate against
         # the AI agent's /webhook/proposal-created endpoint. Same value must be
         # seeded as WEBHOOK_SECRET in ai-agent-secrets.
-        { name = "AI_AGENT_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_SECRET::" }
+        { name = "AI_AGENT_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_SECRET::" },
+        { name = "AI_AGENT_WEBHOOK_URL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_URL::" }
       ]
     }
   ])
