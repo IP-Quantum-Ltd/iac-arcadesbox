@@ -75,6 +75,12 @@ resource "aws_ecs_task_definition" "ai_agent" {
         { name = "DB_PASSWORD", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:DB_PASSWORD::" },
         { name = "DB_DATABASE", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:DB_DATABASE::" },
 
+        { name = "GAME_SWEEP_ENABLED", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:GAME_SWEEP_ENABLED::" },
+        { name = "GAME_SWEEP_SCHEDULE", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:GAME_SWEEP_SCHEDULE::" },
+        { name = "GAME_SWEEP_DAY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:GAME_SWEEP_DAY::" },
+        { name = "GAME_SWEEP_HOUR", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:GAME_SWEEP_HOUR::" },
+        { name = "GAME_SWEEP_MINUTE", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:GAME_SWEEP_MINUTE::" },
+
         { name = "MONGODB_URL", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:MONGODB_URL::" },
         { name = "MONGODB_DB_NAME", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:MONGODB_DB_NAME::" },
         { name = "MONGODB_RAG_COLLECTION", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:MONGODB_RAG_COLLECTION::" },
@@ -127,7 +133,7 @@ resource "aws_ecs_service" "ai_agent" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.ai_agent.arn
 
-  # Single task by design — the in-memory job queue does not support
+  # Single task by design the in-memory job queue does not support
   # multiple workers. Bumping desired_count requires the Redis-backed
   # queue tracked in chareli/ai-agent/docs/progress-tracker.md (Phase VI 6.1).
   desired_count = var.environment == "production" ? (var.ai_agent_active ? 1 : 0) : (
