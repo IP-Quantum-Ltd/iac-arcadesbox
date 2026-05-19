@@ -68,7 +68,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "REDIS_COMPRESSION_ENABLED", value = "true" },
         { name = "REDIS_CIRCUIT_BREAKER", value = "true" },
         { name = "LOG_FORMAT", value = "json" },
-        { name = "APP_URL", value = "https://${var.api_domain_name}/api"},
+        { name = "APP_URL", value = "https://${var.api_domain_name}/api" },
 
         # AI agent base URL (Service Connect, internal). Server's
         # notifyProposalCreated POSTs to ${url}/webhook/proposal-created.
