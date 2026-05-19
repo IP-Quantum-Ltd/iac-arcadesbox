@@ -57,8 +57,8 @@ resource "aws_ecs_task_definition" "ai_agent" {
         { name = "GAME_SWEEP_ENABLED", value = "true" },
         { name = "GAME_SWEEP_SCHEDULE", value = "weekly" },
         { name = "GAME_SWEEP_DAY", value = "tue" },
-        { name = "GAME_SWEEP_HOUR", value = "16" },
-        { name = "GAME_SWEEP_MINUTE", value = "30" }
+        { name = "GAME_SWEEP_HOUR", value = "17" },
+        { name = "GAME_SWEEP_MINUTE", value = "0" }
       ]
 
       secrets = [
