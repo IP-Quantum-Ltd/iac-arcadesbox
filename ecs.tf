@@ -143,7 +143,6 @@ resource "aws_ecs_task_definition" "app" {
         # the AI agent's /webhook/proposal-created endpoint. Same value must be
         # seeded as WEBHOOK_SECRET in ai-agent-secrets.
         { name = "AI_AGENT_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_SECRET::" },
-        { name = "AI_AGENT_WEBHOOK_URL", valueFrom = "${aws_secretsmanager_secret.application_secrets.arn}:AI_AGENT_WEBHOOK_URL::" }
       ]
     }
   ])
