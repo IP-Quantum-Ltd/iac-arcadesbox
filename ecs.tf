@@ -69,11 +69,6 @@ resource "aws_ecs_task_definition" "app" {
         { name = "REDIS_CIRCUIT_BREAKER", value = "true" },
         { name = "LOG_FORMAT", value = "json" },
         { name = "APP_URL", value = "https://${var.api_domain_name}/api" },
-        { name = "GAME_SWEEP_ENABLED", value = "true" },
-        { name = "GAME_SWEEP_SCHEDULE", value = "weekly" },
-        { name = "GAME_SWEEP_DAY", value = "tue" },
-        { name = "GAME_SWEEP_HOUR", value = "16" },
-        { name = "GAME_SWEEP_MINUTE", value = "0" },
 
         # AI agent base URL (Service Connect, internal). Server's
         # notifyProposalCreated POSTs to ${url}/webhook/proposal-created.
