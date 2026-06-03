@@ -45,7 +45,7 @@ min_capacity    = 1
 max_capacity    = 70
 
 # --- AI Agent ---
-ai_agent_active    = false  # flip true after staging soak + real image push to prod ECR
+ai_agent_active    = true  # flip true after staging soak + real image push to prod ECR
 ai_agent_cpu       = "2048" # 2 vCPU
 ai_agent_memory    = "4096" # 4 GB — production headroom for Playwright + LangChain
 ai_agent_image_tag = "placeholder"
