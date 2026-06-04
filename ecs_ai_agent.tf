@@ -116,9 +116,7 @@ resource "aws_ecs_task_definition" "ai_agent" {
         { name = "LANGSMITH_TRACING", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_TRACING::" },
         { name = "LANGSMITH_API_KEY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_API_KEY::" },
         { name = "LANGSMITH_PROJECT", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_PROJECT::" },
-        { name = "LANGSMITH_ENDPOINT", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_ENDPOINT::" },
-        { name = "AWS_ACCESS_KEY_ID", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_ACCESS_KEY_ID::" },
-        { name = "AWS_SECRET_ACCESS_KEY", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:AWS_SECRET_ACCESS_KEY::" },
+        { name = "LANGSMITH_ENDPOINT", valueFrom = "${aws_secretsmanager_secret.ai_agent_secrets.arn}:LANGSMITH_ENDPOINT::" }
       ]
     }
   ])
@@ -140,8 +138,7 @@ resource "aws_ecs_service" "ai_agent" {
 
   lifecycle {
     ignore_changes = [
-      desired_count,
-      task_definition
+      desired_count
     ]
   }
 
