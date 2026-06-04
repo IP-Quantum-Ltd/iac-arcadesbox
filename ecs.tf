@@ -71,7 +71,7 @@ resource "aws_ecs_task_definition" "app" {
 
         # AI agent base URL (Service Connect, internal). Server's
         # notifyProposalCreated POSTs to ${url}/webhook/proposal-created.
-        { name = "AI_AGENT_WEBHOOK_URL", value = "http://ai-agent:8000" }
+        { name = "AI_AGENT_INTERNAL_URL", value = "http://ai-agent:8000" }
       ]
 
       secrets = [
