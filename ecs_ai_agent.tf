@@ -139,7 +139,8 @@ resource "aws_ecs_service" "ai_agent" {
 
   lifecycle {
     ignore_changes = [
-      desired_count
+      desired_count,
+      task_definition
     ]
   }
 
